@@ -1,21 +1,6 @@
-const CACHE = 'wakeup-hybrid-v2';
-const ASSETS = ['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon.svg'];
-self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
-self.addEventListener('activate', event => event.waitUntil((async () => {
-  const keys = await caches.keys();
-  await Promise.all(keys.filter(key => key.startsWith('wakeup-hybrid-') && key !== CACHE).map(key => caches.delete(key)));
-  await self.clients.claim();
-})()));
-self.addEventListener('fetch', event => {
-  const req = event.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
-  event.respondWith((async () => {
-    try {
-      const fresh = await fetch(req);
-      if (fresh.ok) (await caches.open(CACHE)).put(req, fresh.clone());
-      return fresh;
-    } catch {
-      return (await caches.match(req)) || (req.mode === 'navigate' ? await caches.match('./index.html') : undefined) || Response.error();
-    }
-  })());
-});
+const CACHE='wakeup-hybrid-v3-2.0.0';
+const ASSETS=['./','./index.html','./style.css','./app.js','./core.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png'];
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS))));
+self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();});
+self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith('wakeup-hybrid-')&&key!==CACHE)await caches.delete(key);await self.clients.claim();})()));
+self.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(event.request.method!=='GET'||url.origin!==self.location.origin||!url.href.startsWith(self.registration.scope))return;event.respondWith((async()=>{const cache=await caches.open(CACHE);const key=event.request.mode==='navigate'?new URL('./index.html',self.registration.scope).href:event.request;const cached=await cache.match(key);if(cached)return cached;try{return await fetch(event.request);}catch{return Response.error();}})());});
